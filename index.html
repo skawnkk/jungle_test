@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Jungle|나홀로메모장_Ver.2</title>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+      integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      defer
+      src="https://use.fontawesome.com/releases/v5.3.1/js/all.js"
+    ></script>
+    <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic&display=swap" rel="stylesheet">
+  </head>
+
+  <style>
+    *{
+        font-family: 'Nanum Gothic', sans-serif;
+    }
+      
+    .wrap {
+        display: flex;
+        flex-flow: column nowrap;
+        justify-content: center;
+        align-items: center;
+        margin: 10px auto;
+        width: 100%;
+    }
+
+    .main_display button{
+      background-color: lightseagreen;
+      color: white;
+      font-size: large;
+      border: none;
+      margin-top: 1vh;
+      margin-bottom: 1vh;
+    }
+
+    .main_display span{
+      background-color: lightseagreen;
+      border-radius: 0.5em;
+      font-size: large;
+      color:white;
+      padding: 0.5vw;
+    }
+
+    .main_display {
+        padding-top:5vh;
+        padding-bottom:5vh;
+        padding-left:2vw;
+        background-color: lightgray;
+        width: 50vw;
+        height: 32vh;
+    }
+
+    h3, span{
+        padding-top:1vh;
+        padding-left:1vw;
+    }
+
+    .footer{
+        padding-top:1vh;
+        padding-left:1vw;
+        padding-bottom: 1vh;
+    }
+
+    .input_title{
+        width: 20vw;
+        height: 3vh;
+        border: gray solid 0.1em;
+    }
+
+    .input_content{
+        width: 20vw;
+        height: 15vh;
+        border: gray solid 0.1em;
+    }
+
+    .memo_posting {
+        margin-top: 5vh;
+        margin-bottom: 5vh;
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        grid-template-rows: auto;
+        grid-gap: 1vw;
+      }
+
+    .memo {
+      border: lightgray solid 0.1em;
+      width: 16vw;
+    }
+
+    .memo_rewrite {
+      height: 100px;
+      border: solid 0.1em;
+      
+    }
+  </style>
+
+  <script>
+    function delete_memo(id) {
+      $.ajax({
+        type: "POST",
+        url: "/delete",
+        data: { id_give: id },
+        success: function (response) {
+          if (response["result"] == "success") {
+            let msg = response["msg"];
+            alert(msg);
+            window.location.reload();
+          }
+        },
+      });
+    }
+
+    function rewrite_open(id, title, content) {
+      
+        let temp_rewrite = `
+            <div class="memo_rewrite" id="${id}">
+                <div class="title_rewrite">
+                    <input class="title_rewrite${id}" type="text" value="${title}"></input>
+                </div>
+                <div class="content_rewrite">
+                    <input class="content_rewrite${id}" type="text" value="${content}"></input>
+                </div>
+                <button class="button_rewrite" onclick="submit('${id}')">저장</button>
+            </div>
+             `;
+
+      $(".rewrite" + id).append(temp_rewrite);
+      $(".one" + id).html("");
+    }
+
+    function submit(id) {
+      console.log("sub");
+
+      let re_title = $(".title_rewrite" + id).val();
+      let re_content = $(".content_rewrite" + id).val();
+      console.log(re_title, re_content);
+
+      $.ajax({
+        type: "POST",
+        url: "/rewriting",
+        data: {
+          id_give: id,
+          re_title_give: re_title,
+          re_content_give: re_content,
+        },
+        success: function (response) {
+          if (response["result"] == "success") {
+            let msg = response["msg"];
+            alert(msg);
+            window.location.reload();
+          }
+        },
+      });
+    }
+
+    function posting_memo() {
+      let title = $(".input_title").val();
+      let content = $(".input_content").val();
+      let id = Date.now();
+
+      $.ajax({
+        type: "POST",
+        url: "/posting",
+        data: { title_give: title, content_give: content, id_give: id },
+        success: function (response) {
+          if (response["result"] == "success") {
+            let msg = response["msg"];
+            alert(msg);
+            window.location.reload();
+          }
+        },
+      });
+    }
+
+    function make_memo(id, title, content) {
+      let temp_html = `
+            <div class="memo" id="${id}">
+                <div class="one${id}">
+                    <h3>${title}</h3>
+                    <span>${content}</span>
+                    <div class="footer">
+                        <button onclick="rewrite_open('${id}','${title}','${content}')">수정</button>
+                        <button onclick="delete_memo(${id})">삭제</button>
+                    </div>
+                </div>
+                <div class="rewrite${id}" id="re(${id})">
+                
+                </div>
+            </div>
+            `;
+      $(".memo_posting").append(temp_html);
+    }
+
+    function loading_memo() {
+      $.ajax({
+        type: "GET",
+        url: "/loading",
+        data: {},
+        success: function (response) {
+          let memo = response["memo_list"];
+          for (let i = 0; i < memo.length; i++) {
+            let id = memo[i]["id"];
+            let title = memo[i]["title"];
+            let content = memo[i]["content"];
+            make_memo(id, title, content);
+          }
+        },
+      });
+    }
+
+    loading_memo();
+  </script>
+  <body>
+    <div class="wrap">
+      <div class="main_display">
+        <h1>나홀로 메모장 <span>ver2.0</span></h1>
+        <div><input class="input_title" type="text" placeholder="메모 제목을 입력하세요."/></div>
+        <div><input class="input_content" type="text" placeholder="내용을 입력하세요."/>
+    </div>
+        <button onclick="posting_memo()">저장하기</button>
+      </div>
+      <div class="memo_posting"></div>
+    </div>
+  </body>
+</html>
